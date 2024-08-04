@@ -1,37 +1,49 @@
 const axios = require('axios');
 
 module.exports.config = {
-  name: 'gpt3',
-  version: '1.0.0',
-  role: 0,
-  hasPrefix: false,
-  aliases: ['gpt3', 'chatgpt'],
-  description: "Interact with GPT-3 continues",
-  usage: "gpt3 [query]",
-  credits: 'churchill',
-  cooldown: 3,
+    name: "gpt4",
+    version: "1.0.0",
+    hasPermission: 0,
+    credits: "api by jerome",//api by jerome
+    description: "Gpt architecture",
+    usePrefix: false,
+    commandCategory: "GPT4",
+    cooldowns: 5,
 };
 
-module.exports.run = async function({ api, event, args }) {
-  const prompt = args.join(' ');
-  if (!prompt) {
-    api.sendMessage(' how to use 3x: gpt3 what is love?', event.threadID, event.messageID);
-    return;
-  }
+module.exports.run = async function ({ api, event, args }) {
+    try {
+        const { messageID, messageReply } = event;
+        let prompt = args.join(' ');
 
-  const uid = event.senderID;  
-  const apiUrl = `https://markdevs-api.onrender.com/gpt3?prompt=${encodeURIComponent(prompt)}&uid=${encodeURIComponent(uid)}`;
+        if (messageReply) {
+            const repliedMessage = messageReply.body;
+            prompt = `${repliedMessage} ${prompt}`;
+        }
 
-  try {
-    const response = await axios.get(apiUrl);
-    if (response.data && response.data.response) {
-      const gpt3Response = response.data.response;
-      api.sendMessage(`GPT-3 Answer:\n${gpt3Response}`, event.threadID, event.messageID);
-    } else {
-      api.sendMessage('Failed to retrieve the response. Please try again later.', event.threadID, event.messageID);
+        if (!prompt) {
+            return api.sendMessage('Please provide a prompt to generate a text response.\nExample: ai What is the meaning of life?', event.threadID, messageID);
+        }
+        api.sendMessage('🔍 Searching for an answer to your question...', event.threadID);
+
+        // Delay
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Adjust the delay time as needed
+
+        const gpt4_api = `https://gpt4withcustommodel.onrender.com/gpt?query=${encodeURIComponent(prompt)}&model=gpt-4-0613`;
+
+        const response = await axios.get(gpt4_api);
+
+        if (response.data && response.data.response) {
+            const generatedText = response.data.response;
+
+            // Ai Answer Here
+            api.sendMessage(`🤖 Ai Answer\n━━━━━━━━━━━━━━━━\n\n𝗔𝗻𝘀𝘄𝗲𝗿: ${generatedText}\n\n━━━━━━━━━━━━━━━━`, event.threadID, messageID);
+        } else {
+            console.error('API response did not contain expected data:', response.data);
+            api.sendMessage(`❌ An error occurred while generating the text response. Please try again later. Response data: ${JSON.stringify(response.data)}`, event.threadID, messageID);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        api.sendMessage(`❌ An error occurred while generating the text response. Please try again later. Error details: ${error.message}`, event.threadID, event.messageID);
     }
-  } catch (error) {
-    console.error('Error fetching the response:', error);
-    api.sendMessage('An error occurred while fetching the response.', event.threadID, event.messageID);
-  }
 };
